@@ -52,6 +52,19 @@ void BOARD_InitBootPins(void);
 #define RTEPIN_BASIC_RST_PIN_MASK (1U << 5U)      /*!<@brief PORT pin mask */
                                                   /* @} */
 
+/*! @name PORTA17 (number 69), led
+  @{ */
+
+/* Symbols to be used with GPIO driver */
+#define RTEPIN_BASIC_led_GPIO GPIOA                /*!<@brief GPIO peripheral base pointer */
+#define RTEPIN_BASIC_led_GPIO_PIN_MASK (1U << 17U) /*!<@brief GPIO pin mask */
+
+/* Symbols to be used with PORT driver */
+#define RTEPIN_BASIC_led_PORT PORTA                /*!<@brief PORT peripheral base pointer */
+#define RTEPIN_BASIC_led_PIN 17U                   /*!<@brief PORT pin number */
+#define RTEPIN_BASIC_led_PIN_MASK (1U << 17U)      /*!<@brief PORT pin mask */
+                                                   /* @} */
+
 /*!
  * @brief Configures pin routing and optionally pin electrical features.
  *
@@ -547,6 +560,19 @@ void RTEPIN_Basic(void);
 #define RTEPIN_DIGITAL_BEEP_PIN 19U                   /*!<@brief PORT pin number */
 #define RTEPIN_DIGITAL_BEEP_PIN_MASK (1U << 19U)      /*!<@brief PORT pin mask */
                                                       /* @} */
+
+/*! @name PORTA17 (number 69), led
+  @{ */
+
+/* Symbols to be used with GPIO driver */
+#define RTEPIN_DIGITAL_led_GPIO GPIOA                /*!<@brief GPIO peripheral base pointer */
+#define RTEPIN_DIGITAL_led_GPIO_PIN_MASK (1U << 17U) /*!<@brief GPIO pin mask */
+
+/* Symbols to be used with PORT driver */
+#define RTEPIN_DIGITAL_led_PORT PORTA                /*!<@brief PORT peripheral base pointer */
+#define RTEPIN_DIGITAL_led_PIN 17U                   /*!<@brief PORT pin number */
+#define RTEPIN_DIGITAL_led_PIN_MASK (1U << 17U)      /*!<@brief PORT pin mask */
+                                                     /* @} */
 
 /*!
  * @brief Configures pin routing and optionally pin electrical features.

@@ -71,6 +71,7 @@ FATFS fatfs;                                   //逻辑驱动器的工作区
 
 #include "sc_adc.h"
 #include "sc_ftm.h"
+#include "rectangle.h"
 
 /** HITSIC_Module_TEST */
 #include "drv_cam_zf9v034_test.hpp"
@@ -84,6 +85,7 @@ FATFS fatfs;                                   //逻辑驱动器的工作区
 
 
 void MENU_DataSetUp(void);
+void toggle(void);
 
 cam_zf9v034_configPacket_t cameraCfg;
 dmadvp_config_t dmadvpCfg;
@@ -105,6 +107,7 @@ void main(void)
     RTEPIN_Analog();
     RTEPIN_LPUART0_DBG();
     RTEPIN_UART0_WLAN();
+    PORT_SetPinInterruptConfig(PORTE, 10, kPORT_InterruptFallingEdge);
     /** 初始化外设 */
     RTEPIP_Basic();
     RTEPIP_Device();
@@ -124,36 +127,52 @@ void main(void)
     extInt_t::init();
     /** 初始化OLED屏幕 */
     DISP_SSD1306_Init();
-    extern const uint8_t DISP_image_100thAnniversary[8][128];
-    DISP_SSD1306_BufferUpload((uint8_t*) DISP_image_100thAnniversary);
+    //extern const uint8_t DISP_image_100thAnniversary[8][128];
+    //DISP_SSD1306_BufferUpload((uint8_t*) DISP_image_100thAnniversary);
     /** 初始化菜单 */
-    MENU_Init();
-    MENU_Data_NvmReadRegionConfig();
-    MENU_Data_NvmRead(menu_currRegionNum);
+    //MENU_Init();
+    //MENU_Data_NvmReadRegionConfig();
+    //MENU_Data_NvmRead(menu_currRegionNum);
     /** 菜单挂起 */
-    MENU_Suspend();
+    //MENU_Suspend();
     /** 初始化摄像头 */
-
+    //TODO: 在这里初始化摄像头
     /** 初始化IMU */
+    //TODO: 在这里初始化IMU（MPU6050）000
     /** 菜单就绪 */
-    MENU_Resume();
+    //MENU_Resume();
     /** 控制环初始化 */
+    //TODO: 在这里初始化控制环
+    pitMgr_t::insert(1000, 0, toggle, pitMgr_t::enable);
+    extInt_t::insert(PORTE, 10, toggle);
     /** 初始化结束，开启总中断 */
     HAL_ExitCritical();
 
-
-
-
     float f = arm_sin_f32(0.6f);
+    //**打矩形
+    extern const uint8_t rectangle[8][128];
+    DISP_SSD1306_BufferUpload((uint8_t*) rectangle);
 
     while (true)
     {
-
+        //TODO: 在这里添加车模保护代码
     }
+}
+
+void toggle(void)
+{
+    GPIO_PortToggle(GPIOA,1U<<17);
 }
 
 void MENU_DataSetUp(void)
 {
-    MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(nullType, NULL, "EXAMPLE", 0, 0));
+    //MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(nullType, NULL, "EXAMPLE", 0, 0));
+    //TODO: 在这里添加子菜单和菜单项
 }
+
+void CAM_ZF9V034_DmaCallback(edma_handle_t *handle, void *userData, bool transferDone, uint32_t tcds)
+{
+    //TODO: 补完本回调函数
+
+    //TODO: 添加图像处理（转向控制也可以写在这里）
 }

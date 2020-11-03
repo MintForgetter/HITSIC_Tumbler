@@ -72,6 +72,7 @@ pin_labels:
 - {pin_num: '11', pin_signal: PTE8/I2S0_RXD1/I2S0_RX_FS/LPUART0_TX/FTM3_CH3, label: BUTTON_RT, identifier: BUTTON_RT}
 - {pin_num: '12', pin_signal: PTE9/LLWU_P17/I2S0_TXD1/I2S0_RX_BCLK/LPUART0_RX/FTM3_CH4, label: BUTTON_LF, identifier: BUTTON_LF}
 - {pin_num: '126', pin_signal: PTC19/UART3_CTS_b/ENET0_1588_TMR3/FB_CS3_b/FB_BE7_0_BLS31_24_b/SDRAM_DQM0/FB_TA_b, label: BEEP, identifier: BEEP}
+- {pin_num: '69', pin_signal: ADC1_SE17/PTA17/SPI0_SIN/UART0_RTS_b/RMII0_TXD1/MII0_TXD1/I2S0_MCLK, label: led, identifier: led}
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS ***********
  */
 /* clang-format on */
@@ -126,6 +127,7 @@ RTEPIN_Basic:
   - {pin_num: '33', peripheral: ADC1, signal: VREFL, pin_signal: VREFL}
   - {pin_num: '34', peripheral: ADC0, signal: VALTL, pin_signal: VSSA}
   - {pin_num: '34', peripheral: ADC1, signal: VALTL, pin_signal: VSSA}
+  - {pin_num: '69', peripheral: GPIOA, signal: 'GPIO, 17', pin_signal: ADC1_SE17/PTA17/SPI0_SIN/UART0_RTS_b/RMII0_TXD1/MII0_TXD1/I2S0_MCLK}
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS ***********
  */
 /* clang-format on */
@@ -143,6 +145,9 @@ void RTEPIN_Basic(void)
 
     /* PORTA0 (pin 50) is configured as JTAG_TCLK */
     PORT_SetPinMux(RTEPIN_BASIC_SWO_CLK_PORT, RTEPIN_BASIC_SWO_CLK_PIN, kPORT_MuxAlt7);
+
+    /* PORTA17 (pin 69) is configured as PTA17 */
+    PORT_SetPinMux(RTEPIN_BASIC_led_PORT, RTEPIN_BASIC_led_PIN, kPORT_MuxAsGpio);
 
     /* PORTA18 (pin 72) is configured as EXTAL0 */
     PORT_SetPinMux(PORTA, 18U, kPORT_PinDisabledOrAnalog);
@@ -218,6 +223,7 @@ RTEPIN_Digital:
   - {pin_num: '106', peripheral: FTM0, signal: 'CH, 2', pin_signal: CMP1_IN1/PTC3/LLWU_P7/SPI0_PCS1/UART1_RX/FTM0_CH2/CLKOUT/I2S0_TX_BCLK, direction: OUTPUT}
   - {pin_num: '109', peripheral: FTM0, signal: 'CH, 3', pin_signal: PTC4/LLWU_P8/SPI0_PCS0/UART1_TX/FTM0_CH3/FB_AD11/SDRAM_A19/CMP1_OUT, direction: OUTPUT}
   - {pin_num: '126', peripheral: GPIOC, signal: 'GPIO, 19', pin_signal: PTC19/UART3_CTS_b/ENET0_1588_TMR3/FB_CS3_b/FB_BE7_0_BLS31_24_b/SDRAM_DQM0/FB_TA_b, direction: OUTPUT}
+  - {pin_num: '69', peripheral: GPIOA, signal: 'GPIO, 17', pin_signal: ADC1_SE17/PTA17/SPI0_SIN/UART0_RTS_b/RMII0_TXD1/MII0_TXD1/I2S0_MCLK, direction: OUTPUT}
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS ***********
  */
 /* clang-format on */
@@ -268,6 +274,13 @@ void RTEPIN_Digital(void)
     };
     /* Initialize GPIO functionality on pin PTA15 (pin 67)  */
     GPIO_PinInit(RTEPIN_DIGITAL_SWITCH_3_GPIO, RTEPIN_DIGITAL_SWITCH_3_PIN, &SWITCH_3_config);
+
+    gpio_pin_config_t led_config = {
+        .pinDirection = kGPIO_DigitalOutput,
+        .outputLogic = 0U
+    };
+    /* Initialize GPIO functionality on pin PTA17 (pin 69)  */
+    GPIO_PinInit(RTEPIN_DIGITAL_led_GPIO, RTEPIN_DIGITAL_led_PIN, &led_config);
 
     gpio_pin_config_t CAM_VSNC_config = {
         .pinDirection = kGPIO_DigitalInput,
@@ -446,6 +459,9 @@ void RTEPIN_Digital(void)
                       /* Open Drain Enable: Open drain output is enabled on the corresponding pin, if the pin is
                        * configured as a digital output. */
                       | PORT_PCR_ODE(kPORT_OpenDrainEnable));
+
+    /* PORTA17 (pin 69) is configured as PTA17 */
+    PORT_SetPinMux(RTEPIN_DIGITAL_led_PORT, RTEPIN_DIGITAL_led_PIN, kPORT_MuxAsGpio);
 
     /* PORTA9 (pin 61) is configured as PTA9 */
     PORT_SetPinMux(RTEPIN_DIGITAL_SWITCH_0_PORT, RTEPIN_DIGITAL_SWITCH_0_PIN, kPORT_MuxAsGpio);
