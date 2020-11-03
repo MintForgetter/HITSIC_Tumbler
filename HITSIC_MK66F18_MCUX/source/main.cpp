@@ -133,27 +133,36 @@ void main(void)
     /** 菜单挂起 */
     MENU_Suspend();
     /** 初始化摄像头 */
-
+    //TODO: 在这里初始化摄像头
     /** 初始化IMU */
+    //TODO: 在这里初始化IMU（MPU6050）
     /** 菜单就绪 */
     MENU_Resume();
     /** 控制环初始化 */
+    //TODO: 在这里初始化控制环
     /** 初始化结束，开启总中断 */
     HAL_ExitCritical();
-
-
-
 
     float f = arm_sin_f32(0.6f);
 
     while (true)
     {
-
+        //TODO: 在这里添加车模保护代码---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     }
 }
 
 void MENU_DataSetUp(void)
 {
-    MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(nullType, NULL, "EXAMPLE", 0, 0));
+    static uint32_t  region_i=2048;
+    static float global_f=3.14;
+    MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(variType, &region_i, "region_i", 1, menuItem_data_region));
+    MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(varfType, &global_f, "global_f", 11, menuItem_data_global));
+    //TODO: 在这里添加子菜单和菜单项
 }
+
+void CAM_ZF9V034_DmaCallback(edma_handle_t *handle, void *userData, bool transferDone, uint32_t tcds)
+{
+    //TODO: 补完本回调函数
+
+    //TODO: 添加图像处理（转向控制也可以写在这里）
 }
