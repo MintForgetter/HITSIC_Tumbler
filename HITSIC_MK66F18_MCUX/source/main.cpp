@@ -52,6 +52,7 @@
 #include "drv_imu_invensense.hpp"
 #include "drv_dmadvp.hpp"
 #include "drv_cam_zf9v034.hpp"
+#include "pid.hpp"
 
 /** HITSIC_Module_SYS */
 #include "sys_pitmgr.hpp"
@@ -84,6 +85,7 @@ FATFS fatfs;                                   //逻辑驱动器的工作区
 
 
 void MENU_DataSetUp(void);
+void imu_get(void);
 
 cam_zf9v034_configPacket_t cameraCfg;
 dmadvp_config_t dmadvpCfg;
@@ -93,6 +95,7 @@ void CAM_ZF9V034_DmaCallback(edma_handle_t *handle, void *userData, bool transfe
 inv::i2cInterface_t imu_i2c(nullptr, IMU_INV_I2cRxBlocking, IMU_INV_I2cTxBlocking);
 inv::mpu6050_t imu_6050(imu_i2c);
 
+menu_list_t* pid_list;
 void main(void)
 {
     /** 初始化阶段，关闭总中断 */
@@ -135,14 +138,16 @@ void main(void)
     /** 初始化摄像头 */
     //TODO: 在这里初始化摄像头
     /** 初始化IMU */
+    imu_6050.Init();
     //TODO: 在这里初始化IMU（MPU6050）
     /** 菜单就绪 */
     MENU_Resume();
     /** 控制环初始化 */
+    PID_FilterInit();
+    pitMgr_t::insert(ANGS, 1U, Angring, pitMgr_t::enable);
     //TODO: 在这里初始化控制环
     /** 初始化结束，开启总中断 */
     HAL_ExitCritical();
-
     float f = arm_sin_f32(0.6f);
 
     while (true)
@@ -151,10 +156,11 @@ void main(void)
     }
 }
 
+
 void MENU_DataSetUp(void)
 {
-    MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(nullType, NULL, "EXAMPLE", 0, 0));
     //TODO: 在这里添加子菜单和菜单项
+    PID_MenuInit(menu_menuRoot);
 }
 
 void CAM_ZF9V034_DmaCallback(edma_handle_t *handle, void *userData, bool transferDone, uint32_t tcds)
