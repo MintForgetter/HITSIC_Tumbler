@@ -54,4 +54,5 @@ void Protect();
 void Zc_double();
 int midline_wrong(int midline);
 int Cross_begin();
+int zc_mid(uint8_t midline);
 #endif //

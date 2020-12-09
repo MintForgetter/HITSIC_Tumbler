@@ -102,6 +102,7 @@ extern uint8_t protect_sign;
 extern int32_t zcross;
 extern int32_t wifi;
 extern int32_t img_upload;
+extern int32_t zcmid;
 int32_t count=0;
 int32_t tcount=20;
 int32_t protect=0;
@@ -241,6 +242,8 @@ void PID_MenuInit(menu_list_t *menuList)
         MENU_ListInsert(imgMenuList, MENU_ItemConstruct(variType, &img_upload, "IMG_UPLOAD", 24U,
                                 menuItem_data_region));
         MENU_ListInsert(imgMenuList, MENU_ItemConstruct(variType, &wifi, "WIFI", 25U,
+                                menuItem_data_region));
+        MENU_ListInsert(imgMenuList, MENU_ItemConstruct(variType, &zcmid, "Zcmid", 26U,
                                 menuItem_data_region));
     }
 
@@ -507,7 +510,7 @@ void Start_init(void)
     case 7:
         spdset=3.60;pid_spd.kp=-8.0;
         pic_kp=0.08;pid_wdst.kp=-6.80;
-        midline=42;
+        midline=44;
         break;
 
 

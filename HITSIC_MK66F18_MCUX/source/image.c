@@ -342,14 +342,14 @@ void ordinary_two_line(void)
     }
 }
 
-//待完成：斑马线修复
 void fix_un()
 {
+    bend = 0;
     //分别储存左边和右边界十字起始点
     int begin_left = NEAR_LINE;
     int begin_right = NEAR_LINE;
     float k_left, k_right; //储存十字之前边界的斜率
-    if (!Cross_begin())  //判断是否为最底部全是十字，不是则进入
+    if (Cross_begin()==0)  //判断是否为最底部全是十字，不是则进入
     {
         for (int i = 112; i >= 0; i--) //119-102为清车头范围
         {
@@ -404,7 +404,7 @@ void fix_un()
         }
         //printf("%d %d %d\n", 1, begin_left-4, begin_right-4);
     }
-    else
+    else if(Cross_begin()==2)
     {
         //同上
         for (int i = 112; i >= 20; i--)
@@ -441,12 +441,50 @@ void fix_un()
         }
         //printf("%d %d %d\n", 2, begin_left+8, begin_right+8);
     }
+    else if (Cross_begin() == 1)
+    {
+        //同上
+        for (int i = 88; i >= 20; i--)
+        {
+            if ((IsCross(i, left_line[i] - 1, 3, 0) == 2) && left_line[i] >= 10)// && IMG[i][left_line[i]-2]==black &&IMG[i-2][left_line[i] + 4] == white)
+            {
+                begin_left = i - 8;
+                break;
+            }
+        }
+        for (int i = 88; i >= 20; i--)
+        {
+            if ((IsCross(i, right_line[i] + 1, 3, 0) == 2) && right_line[i] <= 178)// && IMG[i][right_line[i] + 2] == black && IMG[i - 2][right_line[i] - 4] == white)
+            {
+                begin_right = i - 8;
+                break;
+            }
+        }
+        //printf("%d %d\n", begin_left + 8, begin_right + 8);
+        if (begin_left != NEAR_LINE && begin_right != NEAR_LINE)
+        {
+            k_left = K_line(begin_left, begin_left - 4, 0);
+            k_right = K_line(begin_right, begin_right - 4, 1);
+            for (int i = 119; i >= begin_left; i--)
+            {
+                left_line[i] = (uint8_t)((float)left_line[begin_left] + (k_left * (float)(i - begin_left)) + 0.5);
+                IMG[i][left_line[i]] = green;
+            }
+            for (int i = 119; i >= begin_right; i--)
+            {
+                right_line[i] = (uint8_t)((float)right_line[begin_right] + (k_right * (float)(i - begin_right)) + 0.5);
+                IMG[i][right_line[i]] = purple;
+            }
+        }
+        //printf("%d %d %d\n", 2, begin_left+8, begin_right+8);
+    }
+    //printf("%d %d\n", begin_left, begin_right);
     if ((begin_left >= 103 || begin_left <= 15) || (begin_right >= 103 || begin_right <= 15))
     {
         bend = 1;
     }
+    //printf("%d\n", bend);
 }
-
 float K_line(int Begin, int Final, int sign)
 {
     float k = 0;
@@ -534,6 +572,8 @@ uint8_t image_main(uint8_t midline)
     for (int i = NEAR_LINE; i >= FAR_LINE; i--)
     {
         fullBuffer[i*188+mid_line[i]]=black;
+        fullBuffer[i*188+left_line[i]]=black;
+        fullBuffer[i*188+right_line[i]]=black;
         fullBuffer[i*188+(mid_line[i]+1)]=black;
         fullBuffer[i*188+(mid_line[i]-1)]=black;
         fullBuffer[i*188+94]=black;
@@ -554,6 +594,13 @@ uint8_t image_main(uint8_t midline)
         midline_return=midline_return+mid_line[i];
     }
     midline_return=midline_return/3;
+    if(zcmid==1)
+    {
+        if((bend==0)&&(zc_mid(midline)))
+        {
+            midline_return=94;
+        }
+    }
     return midline_return;
 }
 
@@ -704,9 +751,9 @@ int Cross_begin()
     //如果前面一段靠近图片边界的都是白则判断为是
     int count_1 = 0;
     int count_2 = 0;
-    for (int i = 102; i >= 97; i--)
+    for (int i = 90; i >= 85; i--)
     {
-        if (IMG[i][10] == white && IMG[i][12] == white && IMG[i][177] == white && IMG[i][175] == white)
+        if (IMG[i][12] == white && IMG[i][14] == white && IMG[i][179] == white && IMG[i][177] == white)
         {
             count_1++;
         }
@@ -718,9 +765,29 @@ int Cross_begin()
             count_2++;
         }
     }
-    if ((count_1 >= 5)||(count_2>=5))
+    if (count_1 >= 4)
     {
         return 1;
+    }
+    if (count_2 >= 4)
+    {
+        return 2;
+    }
+    return 0;
+}
+
+
+int zc_mid(uint8_t midline)
+{
+    uint8_t width1 = 0;
+    uint8_t width2 = 0;
+    int num = (112 - midline) / 10;
+    for (int i = 0; i <= num; i++)
+    {
+        if (fabs(right_line[midline + 10 * i] - left_line[midline + 10 * i]) <= 12)
+        {
+            return 1;
+        }
     }
     return 0;
 }
