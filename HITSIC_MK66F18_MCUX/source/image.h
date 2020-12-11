@@ -55,4 +55,6 @@ void Zc_double();
 int midline_wrong(int midline);
 int Cross_begin();
 int zc_mid(uint8_t midline);
+int IsWide(int begin,int sign);
+void find_K(int sign);
 #endif //

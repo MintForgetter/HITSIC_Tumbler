@@ -39,6 +39,8 @@ uint8_t protect_sign = 0;
 int32_t zcross=1;
 int32_t zcmid=1;
 uint8_t bend=0;
+int32_t zcbegin_num=90;
+int32_t zc=1;
 
 
 ////////////////////////////////////////////
@@ -349,9 +351,9 @@ void fix_un()
     int begin_left = NEAR_LINE;
     int begin_right = NEAR_LINE;
     float k_left, k_right; //储存十字之前边界的斜率
-    if (Cross_begin()==0)  //判断是否为最底部全是十字，不是则进入
+    if (Cross_begin() == 0)
     {
-        for (int i = 112; i >= 0; i--) //119-102为清车头范围
+        for (int i = 100; i >= 0; i--) //119-102为清车头范围
         {
             if (IsCross(i, left_line[i] - 1, 3, 1) == 1) //判断是否是十字起始点
             {
@@ -359,7 +361,7 @@ void fix_un()
                 break; //退出避免之后赛道的影响
             }
         }
-        for (int i = 112; i >= 0; i--)  //同上
+        for (int i = 100; i >= 0; i--)  //同上
         {
             if (IsCross(i, right_line[i] + 1, 3, 1) == 1)
             {
@@ -402,89 +404,19 @@ void fix_un()
                 IMG[i][right_line[i]] = purple;
             }
         }
-        //printf("%d %d %d\n", 1, begin_left-4, begin_right-4);
+        if ((begin_left >= 103 || begin_left <= 15) || (begin_right >= 103 || begin_right <= 15))
+        {
+            bend = 1;
+        }
     }
-    else if(Cross_begin()==2)
+    else
     {
-        //同上
-        for (int i = 112; i >= 20; i--)
-        {
-            if ((IsCross(i, left_line[i] - 1, 3, 0) == 2) && left_line[i]>=10)// && IMG[i][left_line[i]-2]==black &&IMG[i-2][left_line[i] + 4] == white)
-            {
-                begin_left = i - 8;
-                break;
-            }
-        }
-        for (int i = 112; i >= 20; i--)
-        {
-            if ((IsCross(i, right_line[i] + 1, 3, 0) == 2) && right_line[i] <= 178)// && IMG[i][right_line[i] + 2] == black && IMG[i - 2][right_line[i] - 4] == white)
-            {
-                begin_right = i - 8;
-                break;
-            }
-        }
-        //printf("%d %d\n", begin_left + 8, begin_right + 8);
-        if (begin_left != NEAR_LINE && begin_right != NEAR_LINE)
-        {
-            k_left = K_line(begin_left, begin_left - 4, 0);
-            k_right = K_line(begin_right, begin_right - 4, 1);
-            for (int i = 119; i >= begin_left; i--)
-            {
-                left_line[i] = (uint8_t)((float)left_line[begin_left] + (k_left * (float)(i - begin_left)) + 0.5);
-                IMG[i][left_line[i]] = green;
-            }
-            for (int i = 119; i >= begin_right; i--)
-            {
-                right_line[i] = (uint8_t)((float)right_line[begin_right] + (k_right * (float)(i - begin_right)) + 0.5);
-                IMG[i][right_line[i]] = purple;
-            }
-        }
-        //printf("%d %d %d\n", 2, begin_left+8, begin_right+8);
+        find_K(0);
+        find_K(1);
     }
-    else if (Cross_begin() == 1)
-    {
-        //同上
-        for (int i = 88; i >= 20; i--)
-        {
-            if ((IsCross(i, left_line[i] - 1, 3, 0) == 2) && left_line[i] >= 10)// && IMG[i][left_line[i]-2]==black &&IMG[i-2][left_line[i] + 4] == white)
-            {
-                begin_left = i - 8;
-                break;
-            }
-        }
-        for (int i = 88; i >= 20; i--)
-        {
-            if ((IsCross(i, right_line[i] + 1, 3, 0) == 2) && right_line[i] <= 178)// && IMG[i][right_line[i] + 2] == black && IMG[i - 2][right_line[i] - 4] == white)
-            {
-                begin_right = i - 8;
-                break;
-            }
-        }
-        //printf("%d %d\n", begin_left + 8, begin_right + 8);
-        if (begin_left != NEAR_LINE && begin_right != NEAR_LINE)
-        {
-            k_left = K_line(begin_left, begin_left - 4, 0);
-            k_right = K_line(begin_right, begin_right - 4, 1);
-            for (int i = 119; i >= begin_left; i--)
-            {
-                left_line[i] = (uint8_t)((float)left_line[begin_left] + (k_left * (float)(i - begin_left)) + 0.5);
-                IMG[i][left_line[i]] = green;
-            }
-            for (int i = 119; i >= begin_right; i--)
-            {
-                right_line[i] = (uint8_t)((float)right_line[begin_right] + (k_right * (float)(i - begin_right)) + 0.5);
-                IMG[i][right_line[i]] = purple;
-            }
-        }
-        //printf("%d %d %d\n", 2, begin_left+8, begin_right+8);
-    }
-    //printf("%d %d\n", begin_left, begin_right);
-    if ((begin_left >= 103 || begin_left <= 15) || (begin_right >= 103 || begin_right <= 15))
-    {
-        bend = 1;
-    }
-    //printf("%d\n", bend);
 }
+
+
 float K_line(int Begin, int Final, int sign)
 {
     float k = 0;
@@ -746,41 +678,112 @@ int midline_wrong(int midline)
     return 0;
 }
 
+void find_K(int sign)
+{
+    int left = 0;
+    int right = 0;
+    int begin = 119;
+    if (sign == 0)
+    {
+        for (int i = 111; i >= 20; i--)
+        {
+            if (left_line[i] <= 5 && left_line[i + 1] <= 5 && left_line[i - 1] > 5 && left_line[i - 2] > 5)
+            {
+                begin = i;
+                break;
+            }
+        }
+        while (IsWide(begin, 0))
+        {
+            begin = begin - 2;
+        }
+    }
+    if (sign == 1)
+    {
+        for (int i = 111; i >= 20; i--)
+        {
+            if (right_line[i] >= 182 && right_line[i + 1] >= 182 && right_line[i - 1] < 182 && right_line[i - 2] < 182)
+            {
+                begin = i;
+                break;
+            }
+        }
+        while (IsWide(begin, 1))
+        {
+            begin = begin - 3;
+        }
+    }
+    begin = begin - 2;
+    if (sign == 0)
+    {
+        float k1 = 0;
+        k1 = K_line(begin, begin-4, 0);
+        //printf("%f\n", k1);
+        for (int i = 119; i >= begin; i--)
+        {
+            left_line[i] = (uint8_t)((float)left_line[begin] + (k1 * (float)(i - begin)) + 0.5);
+            IMG[i][left_line[i]] = green;
+        }
+    }
+    if (sign == 1)
+    {
+        float k2 = 0;
+        //printf("%f\n", k2);
+        k2 = K_line(begin, begin-4, 1);
+        for (int i = 119; i >= begin; i--)
+        {
+            right_line[i] = (uint8_t)((float)right_line[begin] + (k2 * (float)(i - begin)) + 0.5);
+            IMG[i][right_line[i]] = purple;
+        }
+    }
+}
+
 int Cross_begin()
 {
-    //如果前面一段靠近图片边界的都是白则判断为是
-    int count_1 = 0;
-    int count_2 = 0;
-    for (int i = 90; i >= 85; i--)
+    int num= (112 - 90) / 10;
+    for (int i = 0; i <= num; i++)
     {
-        if (IMG[i][12] == white && IMG[i][14] == white && IMG[i][179] == white && IMG[i][177] == white)
+        if ((IMG[90 + i * 10][3] == white && IMG[90 + i * 10][4] == white) || (IMG[90 + i * 10][184] == white && IMG[90 + i * 10][183] == white))
         {
-            count_1++;
+            //printf("%d\n", 1);
+            return 1;
         }
-    }
-    for (int i = 116; i >= 111; i--)
-    {
-        if (IMG[i][10] == white && IMG[i][12] == white && IMG[i][177] == white && IMG[i][175] == white)
-        {
-            count_2++;
-        }
-    }
-    if (count_1 >= 4)
-    {
-        return 1;
-    }
-    if (count_2 >= 4)
-    {
-        return 2;
     }
     return 0;
 }
 
+int IsWide(int begin,int sign)
+{
+    int count = 0;
+    if (sign == 0)
+    {
+        for (int i = 0; i <= 6; i++)
+        {
+            if (IMG[begin][10 * i + 4] == white)
+            {
+                count++;
+            }
+        }
+    }
+    if (sign == 1)
+    {
+        for (int i = 12; i <= 18; i++)
+        {
+            if (IMG[begin][10 * i + 4] == white)
+            {
+                count++;
+            }
+        }
+    }
+    if (count>=4)
+    {
+        return 1;
+    }
+    return 0;
+}
 
 int zc_mid(uint8_t midline)
 {
-    uint8_t width1 = 0;
-    uint8_t width2 = 0;
     int num = (112 - midline) / 10;
     for (int i = 0; i <= num; i++)
     {

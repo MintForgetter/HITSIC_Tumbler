@@ -224,7 +224,7 @@ void PID_MenuInit(menu_list_t *menuList)
 
     }
     static menu_list_t *imgMenuList =
-                MENU_ListConstruct("IMG", 10, menuList);
+                MENU_ListConstruct("IMG", 15, menuList);
     assert(imgMenuList);
     MENU_ListInsert(menuList, MENU_ItemConstruct(menuType, imgMenuList, "IMG", 0, 0));
     {
@@ -509,8 +509,13 @@ void Start_init(void)
         break;
     case 7:
         spdset=3.60;pid_spd.kp=-8.0;
-        pic_kp=0.08;pid_wdst.kp=-6.80;
-        midline=44;
+        pic_kp=0.08;pid_wdst.kp=-6.40;
+        midline=48;
+        break;
+    case 8:
+        spdset=3.80;pid_spd.kp=-8.0;
+        pic_kp=0.08;pid_wdst.kp=-6.60;
+        midline=46;
         break;
 
 
