@@ -348,6 +348,10 @@ void fix_un()
 {
     bend = 0;
     //分别储存左边和右边界十字起始点
+    if ((IsWide(90, 0) == 0 && IsWide(90, 1) == 1) || (IsWide(90, 0) == 1 && IsWide(90, 1) == 0) || ((IsWide(29, 0) == 0 && IsWide(29, 1) == 0) && !((IsWide(110, 0) == 1 && IsWide(110, 1) == 1))))
+    {
+        bend = 1;
+    }
     int begin_left = NEAR_LINE;
     int begin_right = NEAR_LINE;
     float k_left, k_right; //储存十字之前边界的斜率
@@ -409,7 +413,7 @@ void fix_un()
             bend = 1;
         }
     }
-    else
+    else if((Cross_begin()==1)&&(bend==0))
     {
         find_K(0);
         find_K(1);

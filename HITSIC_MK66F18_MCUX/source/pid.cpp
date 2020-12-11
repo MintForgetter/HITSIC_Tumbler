@@ -24,7 +24,7 @@ float pid_gyro[3] = {0.0f, 0.0f, 0.0f};
 int32_t Ang_con[3] = {0, 0, 1};
 int32_t Spd_con[3] = {0, 0, 1};
 int32_t Dir_con[3] = {0, 0, 1};
-int32_t gear[3] = {1, 0, 7};
+int32_t gear[3] = {1, 0, 4};
 
 float &pid_acc = pid_accl[0];///<x轴加速度计
 float &pid_gyr = pid_gyro[1];///<y轴角速度
@@ -106,6 +106,7 @@ extern int32_t zcmid;
 int32_t count=0;
 int32_t tcount=20;
 int32_t protect=0;
+int32_t init=0;
 
 void PID_Init(void)
 {
@@ -126,6 +127,8 @@ void PID_MenuInit(menu_list_t *menuList)
     {
         MENU_ListInsert(conMenuList, MENU_ItemConstruct(variType, &gear[0], "gear", 17U,
                 menuItem_data_region | menuItem_dataExt_HasMinMax));
+        MENU_ListInsert(conMenuList, MENU_ItemConstruct(variType, &init, "init", 27U,
+                menuItem_data_region));
         MENU_ListInsert(conMenuList, MENU_ItemConstruct(variType, &tcount, "delay", 22U,
                 menuItem_data_region ));
         MENU_ListInsert(conMenuList, MENU_ItemConstruct(variType, &Ang_con[0], "ang.con", 18U,
@@ -322,10 +325,7 @@ void Ang_ring(void)
         angoutput=0.0f;
     }
     PWM(angoutput+pwm_diff,angoutput-pwm_diff);
-    if(protect==1)
-    {
-        Stop();
-    }
+    Stop();
 }
 
 /* *********************************************** */
@@ -441,84 +441,72 @@ void PWM(float pwm_L,float pwm_R) ///<控制电机
 
 void Stop(void)
 {
-    if(protect_sign==1)
+    if(protect==1)
     {
-        Ang_con[0]=0;
-        Spd_con[0]=0;
-        Dir_con[0]=0;
+        if(protect_sign==1)
+        {
+            Ang_con[0]=0;
+            Spd_con[0]=0;
+            Dir_con[0]=0;
 
+        }
     }
-    if(zcross_sign==4&&protect_sign==0)
+    if(zcross==1)
     {
-       count++;
-    }
-    if(count==tcount)
-    {
-        Ang_con[0]=0;
-        Spd_con[0]=0;
-        Dir_con[0]=0;
+        if(zcross_sign==4&&protect_sign==0)
+        {
+           count++;
+        }
+        if(count==tcount)
+        {
+            Ang_con[0]=0;
+            Spd_con[0]=0;
+            Dir_con[0]=0;
+        }
     }
 }
 
 void Start_init(void)
 {
-    if(protect==1)
+    if(init==1)
     {
+        zcross_sign=0;
+        protect_sign=0;
         Ang_con[0]=1;
         Spd_con[0]=0;
         Dir_con[0]=0;
         SDK_DelayAtLeastUs(1000000, 180000000);
         zcross_sign=0;
+        protect_sign=0;
         Ang_con[0]=1;
         Spd_con[0]=1;
         Dir_con[0]=1;
-    }
-    switch(gear[0])
-    {
-    case 0:
-        break;
-    case 1:
-        spdset=1.00;pid_spd.kp=-20.0;
-        pic_kp=0.20;pid_wdst.kp=-2.80;
-        midline=62;
-        break;
-    case 2:
-        spdset=1.30;pid_spd.kp=-16.0;
-        pic_kp=0.18;pid_wdst.kp=-3.20;
-        midline=58;
-        break;
-    case 3:
-        spdset=1.60;pid_spd.kp=-14.0;
-        pic_kp=0.16;pid_wdst.kp=-3.60;
-        midline=55;
-        break;
-    case 4:
-        spdset=1.90;pid_spd.kp=-12.0;
-        pic_kp=0.14;pid_wdst.kp=-4.00;
-        midline=52;
-        break;
-    case 5:
-        spdset=2.50;pid_spd.kp=-10.0;
-        pic_kp=0.10;pid_wdst.kp=-4.80;
-        midline=48;
-        break;
-    case 6:
-        spdset=3.00;pid_spd.kp=-8.0;
-        pic_kp=0.10;pid_wdst.kp=-4.80;
-        midline=45;
-        break;
-    case 7:
-        spdset=3.60;pid_spd.kp=-8.0;
-        pic_kp=0.08;pid_wdst.kp=-6.40;
-        midline=48;
-        break;
-    case 8:
-        spdset=3.80;pid_spd.kp=-8.0;
-        pic_kp=0.08;pid_wdst.kp=-6.60;
-        midline=46;
-        break;
+        switch(gear[0])
+         {
+         case 0:
+             break;
+         case 1:
+             spdset=3.00;pid_spd.kp=-10.0;
+             pic_kp=0.10;pid_wdst.kp=-5.90;
+             midline=54;
+             break;
+         case 2:
+             spdset=3.60;pid_spd.kp=-8.0;
+             pic_kp=0.08;pid_wdst.kp=-6.80;
+             midline=48;
+             break;
+         case 3:
+             spdset=3.80;pid_spd.kp=-8.0;
+             pic_kp=0.08;pid_wdst.kp=-7.10;
+             midline=46;
+             break;
+         case 4:
+             spdset=3.80;pid_spd.kp=-8.0;
+             pic_kp=0.08;pid_wdst.kp=-7.30;
+             midline=42;
+             break;
 
-
+         }
     }
 }
 
