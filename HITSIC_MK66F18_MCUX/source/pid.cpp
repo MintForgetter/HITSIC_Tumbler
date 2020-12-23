@@ -1,4 +1,5 @@
 #include "pid.hpp"
+#include "ADC.h"
 
 /**
  * @brief   控制环PITMGR任务句柄
@@ -91,18 +92,18 @@ float spdcolA=0.0f;///<平均速度
 float spdrawop=0.0f;///<速度环原始输出
 float spdfilop=0.0f;///<速度环滤波输出
 float spdop[FILCOUNT]={0};///<滤波数组
-float pic_dif=0.0f;///<中线偏差
-float pic_kp=0.0f;///<中线kp
+float adc_dif=0.0f;///<中线偏差
+float adc_kp=0.0f;///<中线kp
 float pwm_diff=0.0f;///<pwm偏差
-extern int32_t midline;
-extern int32_t imageTH;
-extern int32_t threshold;
-extern uint8_t zcross_sign;
-extern uint8_t protect_sign;
-extern int32_t zcross;
+extern uint8_t protect_flag;
+//extern int32_t zcross;
 extern int32_t wifi;
-extern int32_t img_upload;
-extern int32_t zcmid;
+extern float k_er;
+extern uint32_t pro_flag;
+extern uint32_t nor_flag;
+extern float AD[Num_AD];
+extern uint32_t adc_flag[8];
+extern float V_max[Num_AD];
 int32_t count=0;
 int32_t tcount=20;
 int32_t protect=0;
@@ -181,7 +182,7 @@ void PID_MenuInit(menu_list_t *menuList)
     MENU_ListInsert(menuList, MENU_ItemConstruct(menuType, dirMenuList, "Dir.ring", 0, 0));
     {
         MENU_ListInsert(dirMenuList, MENU_ItemConstruct(nullType, NULL, "DIR", 0, 0));
-        MENU_ListInsert(dirMenuList, MENU_ItemConstruct(varfType, &pic_kp, "pic.kp", 0U,
+        MENU_ListInsert(dirMenuList, MENU_ItemConstruct(varfType, &adc_kp, "adc.kp", 0U,
                 menuItem_data_region));
         MENU_ListInsert(dirMenuList, MENU_ItemConstruct(varfType, &pid_wdst.kp, "dir.kp", 9U,
                 menuItem_data_region));
@@ -226,29 +227,97 @@ void PID_MenuInit(menu_list_t *menuList)
                 menuItem_data_global));
 
     }
-    static menu_list_t *imgMenuList =
-                MENU_ListConstruct("IMG", 15, menuList);
-    assert(imgMenuList);
-    MENU_ListInsert(menuList, MENU_ItemConstruct(menuType, imgMenuList, "IMG", 0, 0));
-    {
-        MENU_ListInsert(imgMenuList, MENU_ItemConstruct(nullType, NULL, "IMG", 0, 0));
-        MENU_ListInsert(imgMenuList, MENU_ItemConstruct(variType, &imageTH, "imgTH", 14U,
-                menuItem_data_region));
-        MENU_ListInsert(imgMenuList, MENU_ItemConstruct(variType, &midline, "midline", 15U,
-                menuItem_data_region));
-        MENU_ListInsert(imgMenuList, MENU_ItemConstruct(variType, &threshold, "threshold", 16U,
-                menuItem_data_region));
-        MENU_ListInsert(imgMenuList, MENU_ItemConstruct(variType, &zcross, "ZCross", 21U,
-                        menuItem_data_region));
-        MENU_ListInsert(imgMenuList, MENU_ItemConstruct(variType, &protect, "protect", 23U,
-                        menuItem_data_region));
-        MENU_ListInsert(imgMenuList, MENU_ItemConstruct(variType, &img_upload, "IMG_UPLOAD", 24U,
+
+    static menu_list_t *adcMenuList =
+                    MENU_ListConstruct("ADC", 15, menuList);
+        assert(adcMenuList);
+        MENU_ListInsert(menuList, MENU_ItemConstruct(menuType, adcMenuList, "ADC", 0, 0));
+        {
+            MENU_ListInsert(adcMenuList, MENU_ItemConstruct(nullType, NULL, "ADC", 0, 0));
+            MENU_ListInsert(adcMenuList, MENU_ItemConstruct(varfType, &adc_dif, "DIF", 36U,
+                                              menuItem_data_NoSave | menuItem_data_NoLoad));
+            MENU_ListInsert(adcMenuList, MENU_ItemConstruct(varfType, &k_er, "K", 14U,
+                    menuItem_data_region));
+            MENU_ListInsert(adcMenuList, MENU_ItemConstruct(variType, &pro_flag, "Program", 15U,
+                    menuItem_data_region));
+            MENU_ListInsert(adcMenuList, MENU_ItemConstruct(variType, &nor_flag, "Normal", 16U,
+                    menuItem_data_region));
+            MENU_ListInsert(adcMenuList, MENU_ItemConstruct(variType, &wifi, "WIFI", 21U,
                                 menuItem_data_region));
-        MENU_ListInsert(imgMenuList, MENU_ItemConstruct(variType, &wifi, "WIFI", 25U,
+            MENU_ListInsert(adcMenuList, MENU_ItemConstruct(variType, &protect, "protect", 23U,
                                 menuItem_data_region));
-        MENU_ListInsert(imgMenuList, MENU_ItemConstruct(variType, &zcmid, "Zcmid", 26U,
+        }
+        static menu_list_t *adMenuList =
+                        MENU_ListConstruct("AD", 15, menuList);
+            assert(adMenuList);
+            MENU_ListInsert(menuList, MENU_ItemConstruct(menuType, adMenuList, "AD", 0, 0));
+            {
+                MENU_ListInsert(adMenuList, MENU_ItemConstruct(nullType, NULL, "AD", 0, 0));
+                MENU_ListInsert(adMenuList, MENU_ItemConstruct(varfType, &AD[0], "AD1", 28U,
+                                        menuItem_data_NoSave | menuItem_data_NoLoad));
+                MENU_ListInsert(adMenuList, MENU_ItemConstruct(varfType, &AD[1], "AD2", 29U,
+                                        menuItem_data_NoSave | menuItem_data_NoLoad));
+                MENU_ListInsert(adMenuList, MENU_ItemConstruct(varfType, &AD[2], "AD3", 30U,
+                                        menuItem_data_NoSave | menuItem_data_NoLoad));
+                MENU_ListInsert(adMenuList, MENU_ItemConstruct(varfType, &AD[3], "AD4", 31U,
+                                        menuItem_data_NoSave | menuItem_data_NoLoad));
+                MENU_ListInsert(adMenuList, MENU_ItemConstruct(varfType, &AD[4], "AD5", 32U,
+                                        menuItem_data_NoSave | menuItem_data_NoLoad));
+                MENU_ListInsert(adMenuList, MENU_ItemConstruct(varfType, &AD[5], "AD6", 33U,
+                                        menuItem_data_NoSave | menuItem_data_NoLoad));
+                MENU_ListInsert(adMenuList, MENU_ItemConstruct(varfType, &AD[6], "AD7", 34U,
+                                        menuItem_data_NoSave | menuItem_data_NoLoad));
+                MENU_ListInsert(adMenuList, MENU_ItemConstruct(varfType, &AD[7], "AD8", 35U,
+                                        menuItem_data_NoSave | menuItem_data_NoLoad));
+            }
+            static menu_list_t *adcflagMenuList =
+                            MENU_ListConstruct("ADCFLAG", 15, menuList);
+                assert(adcflagMenuList);
+                MENU_ListInsert(menuList, MENU_ItemConstruct(menuType, adcflagMenuList, "ADCFLAG", 0, 0));
+                {
+                    MENU_ListInsert(adcflagMenuList, MENU_ItemConstruct(nullType, NULL, "ADCFLAG", 0, 0));
+                    MENU_ListInsert(adcflagMenuList, MENU_ItemConstruct(variType, &adc_flag[0], "ADC1", 37U,
+                            menuItem_data_region));
+                    MENU_ListInsert(adcflagMenuList, MENU_ItemConstruct(variType, &adc_flag[1], "ADC2", 38U,
+                                                menuItem_data_region));
+                    MENU_ListInsert(adcflagMenuList, MENU_ItemConstruct(variType, &adc_flag[2], "ADC3", 39U,
+                                                menuItem_data_region));
+                    MENU_ListInsert(adcflagMenuList, MENU_ItemConstruct(variType, &adc_flag[3], "ADC4", 40U,
+                                                menuItem_data_region));
+                    MENU_ListInsert(adcflagMenuList, MENU_ItemConstruct(variType, &adc_flag[4], "ADC5", 41U,
+                                                menuItem_data_region));
+                    MENU_ListInsert(adcflagMenuList, MENU_ItemConstruct(variType, &adc_flag[5], "ADC6", 42U,
+                                                menuItem_data_region));
+                    MENU_ListInsert(adcflagMenuList, MENU_ItemConstruct(variType, &adc_flag[6], "ADC7", 43U,
+                                                menuItem_data_region));
+                    MENU_ListInsert(adcflagMenuList, MENU_ItemConstruct(variType, &adc_flag[7], "ADC8", 44U,
+                                                menuItem_data_region));
+                }
+                static menu_list_t *normalMenuList =
+                                MENU_ListConstruct("ADCNORMAL", 15, menuList);
+                    assert(normalMenuList);
+                    MENU_ListInsert(menuList, MENU_ItemConstruct(menuType, normalMenuList, "ADCNORMAL", 0, 0));
+                    {
+                        MENU_ListInsert(normalMenuList, MENU_ItemConstruct(nullType, NULL, "ADCNORMAL", 0, 0));
+                        MENU_ListInsert(normalMenuList, MENU_ItemConstruct(varfType, &V_max[0], "NOR1", 45U,
                                 menuItem_data_region));
-    }
+                        MENU_ListInsert(normalMenuList, MENU_ItemConstruct(varfType, &V_max[1], "NOR2", 46U,
+                                                        menuItem_data_region));
+                        MENU_ListInsert(normalMenuList, MENU_ItemConstruct(varfType, &V_max[2], "NOR3", 47U,
+                                                        menuItem_data_region));
+                        MENU_ListInsert(normalMenuList, MENU_ItemConstruct(varfType, &V_max[3], "NOR4", 48U,
+                                                        menuItem_data_region));
+                        MENU_ListInsert(normalMenuList, MENU_ItemConstruct(varfType, &V_max[4], "NOR5", 49U,
+                                                        menuItem_data_region));
+                        MENU_ListInsert(normalMenuList, MENU_ItemConstruct(varfType, &V_max[5], "NOR6", 50U,
+                                                        menuItem_data_region));
+                        MENU_ListInsert(normalMenuList, MENU_ItemConstruct(varfType, &V_max[6], "NOR7", 51U,
+                                                        menuItem_data_region));
+                        MENU_ListInsert(normalMenuList, MENU_ItemConstruct(varfType, &V_max[7], "NOR8", 52U,
+                                                        menuItem_data_region));
+                    }
+
+
 
 }
 
@@ -383,11 +452,11 @@ void Dir_ring(void)
     else
         w=-sqrt(pow(pid_gyro[0],2)+pow(pid_gyro[2],2));
     w=To_rad(w);
-    pic_dif=pic_dif<94?pic_dif:94;
-    pic_dif=pic_dif>-94?pic_dif:-94;
+    adc_dif=adc_dif<94?adc_dif:94;
+    adc_dif=adc_dif>-94?adc_dif:-94;
     if(Dir_con[0]==1)
     {
-        Updatering(&pid_wdst,pic_dif*pic_kp*spdcolA,2);///<更新参数
+        Updatering(&pid_wdst,adc_dif*adc_kp*spdcolA,2);///<更新参数
         Updatering(&pid_wyaw,w,2);
         pwm_diff=(pid_wdst.Curr-pid_wyaw.Curr)*pid_wdst.kp+(pid_wdst.Diff-pid_wyaw.Diff)*pid_wdst.kd;///<转向偏差输出
         pwm_diff=pwm_diff<30?pwm_diff:30;///<限幅
@@ -443,7 +512,7 @@ void Stop(void)
 {
     if(protect==1)
     {
-        if(protect_sign==1)
+        if(protect_flag==1)
         {
             Ang_con[0]=0;
             Spd_con[0]=0;
@@ -451,6 +520,7 @@ void Stop(void)
 
         }
     }
+    /*
     if(zcross==1)
     {
         if(zcross_sign==4&&protect_sign==0)
@@ -464,20 +534,21 @@ void Stop(void)
             Dir_con[0]=0;
         }
     }
+    */
 }
 
 void Start_init(void)
 {
     if(init==1)
     {
-        zcross_sign=0;
-        protect_sign=0;
+        //zcross_sign=0;
+        protect_flag=0;
         Ang_con[0]=1;
         Spd_con[0]=0;
         Dir_con[0]=0;
         SDK_DelayAtLeastUs(1000000, 180000000);
-        zcross_sign=0;
-        protect_sign=0;
+        //zcross_sign=0;
+        protect_flag=0;
         Ang_con[0]=1;
         Spd_con[0]=1;
         Dir_con[0]=1;
@@ -486,24 +557,20 @@ void Start_init(void)
          case 0:
              break;
          case 1:
-             spdset=3.00;pid_spd.kp=-10.0;
-             pic_kp=0.10;pid_wdst.kp=-5.90;
-             midline=54;
+             spdset=3.00;pid_spd.kp=10.0;
+             adc_kp=-0.10;pid_wdst.kp=5.90;
              break;
          case 2:
-             spdset=3.60;pid_spd.kp=-8.0;
-             pic_kp=0.08;pid_wdst.kp=-6.80;
-             midline=48;
+             spdset=3.60;pid_spd.kp=8.0;
+             adc_kp=-0.08;pid_wdst.kp=6.80;
              break;
          case 3:
-             spdset=3.80;pid_spd.kp=-8.0;
-             pic_kp=0.08;pid_wdst.kp=-7.10;
-             midline=46;
+             spdset=3.80;pid_spd.kp=8.0;
+             adc_kp=-0.08;pid_wdst.kp=7.10;
              break;
          case 4:
-             spdset=3.80;pid_spd.kp=-8.0;
-             pic_kp=0.08;pid_wdst.kp=-7.30;
-             midline=42;
+             spdset=3.80;pid_spd.kp=8.0;
+             adc_kp=-0.08;pid_wdst.kp=7.30;
              break;
 
          }
@@ -514,7 +581,7 @@ void Start_init(void)
 /* ******************** WIFI模块 ******************** */
 void Wifi(void)
 {
-    float mydata[8]={pwm_diff,angoutput,spdcolA,pic_dif,pid_wdst.Curr,pid_wyaw.Curr,zcross_sign,protect_sign};
+    float mydata[8]={pwm_diff,angoutput,spdcolA,adc_dif,pid_wdst.Curr,pid_wyaw.Curr,adc_dif};
     SCHOST_VarUpload(mydata,8);
 }
 

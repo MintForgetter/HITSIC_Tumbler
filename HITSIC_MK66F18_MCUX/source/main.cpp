@@ -85,36 +85,42 @@ FATFS fatfs;                                   //逻辑驱动器的工作区
 
 /** SCLIB_TEST */
 #include "sc_test.hpp"
-#include"image.h"
+//#include"image.h"
+#include"ADC.h"
 
 void MENU_DataSetUp(void);
-void THRE(void);
+void DEV_adc(void);
+//void THRE(void);
 //void CAM_switch(uint8_t *imageBuffer0,uint8_t *imageBuffer1);
-void CAM_switch(void);
-void Camscreen(disp_ssd1306_frameBuffer_t *dispBuffer0);
-cam_zf9v034_configPacket_t cameraCfg;
-dmadvp_config_t dmadvpCfg;
-dmadvp_handle_t dmadvpHandle;
-void CAM_ZF9V034_DmaCallback(edma_handle_t *handle, void *userData, bool transferDone, uint32_t tcds);
+//void CAM_switch(void);
+//void Camscreen(disp_ssd1306_frameBuffer_t *dispBuffer0);
+//cam_zf9v034_configPacket_t cameraCfg;
+//dmadvp_config_t dmadvpCfg;
+//dmadvp_handle_t dmadvpHandle;
+//void CAM_ZF9V034_DmaCallback(edma_handle_t *handle, void *userData, bool transferDone, uint32_t tcds);
 
 inv::i2cInterface_t imu_i2c(nullptr, IMU_INV_I2cRxBlocking, IMU_INV_I2cTxBlocking);
 inv::mpu6050_t imu_6050(imu_i2c);
-uint8_t *fullBuffer = NULL;
-int32_t midline = 73;
-int32_t imageTH = 200;
-int32_t threshold = 150;//阈值
+//uint8_t *fullBuffer = NULL;
+//int32_t midline = 73;
+//int32_t imageTH = 200;
+//int32_t threshold = 150;//阈值
 int32_t wifi=0;
-int32_t img_upload=0;
+//int32_t img_upload=0;
 int8_t  Key=0;
 disp_ssd1306_frameBuffer_t dispBuffer;
 graphic::bufPrint0608_t<disp_ssd1306_frameBuffer_t> bufPrinter(dispBuffer);
-extern float pic_dif;
+extern float adc_dif;
+extern uint32_t nor_flag;
 
 void main(void)
 {
     /** 初始化阶段，关闭总中断 */
 
-    HAL_EnterCritical();
+    HAL_EnterCritical(
+
+
+    );
 
     /** BSP（板级支持包）初始化 */
     RTECLK_HsRun_180MHz();
@@ -151,16 +157,16 @@ void main(void)
     /** 初始化摄像头 */
     //TODO: 在这里初始化摄像头
     //初始化部分：
-    CAM_ZF9V034_GetDefaultConfig(&cameraCfg);                                   //设置摄像头配置
-    CAM_ZF9V034_CfgWrite(&cameraCfg);                                   //写入配置
-    CAM_ZF9V034_GetReceiverConfig(&dmadvpCfg, &cameraCfg);    //生成对应接收器的配置数据，使用此数据初始化接受器并接收图像数据。
-    DMADVP_Init(DMADVP0, &dmadvpCfg);
-    DMADVP_TransferCreateHandle(&dmadvpHandle, DMADVP0, CAM_ZF9V034_DmaCallback);
-    uint8_t *imageBuffer0 = new uint8_t[DMADVP0->imgSize];
-    uint8_t *imageBuffer1 = new uint8_t[DMADVP0->imgSize];
-    DMADVP_TransferSubmitEmptyBuffer(DMADVP0, &dmadvpHandle, imageBuffer0);
-    DMADVP_TransferSubmitEmptyBuffer(DMADVP0, &dmadvpHandle, imageBuffer1);
-    DMADVP_TransferStart(DMADVP0, &dmadvpHandle);
+    //CAM_ZF9V034_GetDefaultConfig(&cameraCfg);                                   //设置摄像头配置
+    //CAM_ZF9V034_CfgWrite(&cameraCfg);                                   //写入配置
+    //CAM_ZF9V034_GetReceiverConfig(&dmadvpCfg, &cameraCfg);    //生成对应接收器的配置数据，使用此数据初始化接受器并接收图像数据。
+    //DMADVP_Init(DMADVP0, &dmadvpCfg);
+    //DMADVP_TransferCreateHandle(&dmadvpHandle, DMADVP0, CAM_ZF9V034_DmaCallback);
+    //uint8_t *imageBuffer0 = new uint8_t[DMADVP0->imgSize];
+    //uint8_t *imageBuffer1 = new uint8_t[DMADVP0->imgSize];
+    //DMADVP_TransferSubmitEmptyBuffer(DMADVP0, &dmadvpHandle, imageBuffer0);
+    //DMADVP_TransferSubmitEmptyBuffer(DMADVP0, &dmadvpHandle, imageBuffer1);
+    //DMADVP_TransferStart(DMADVP0, &dmadvpHandle);
     /** 初始化IMU */
     //TODO: 在这里初始化IMU（MPU6050）
     imu_6050.Init();
@@ -169,36 +175,18 @@ void main(void)
     /** 控制环初始化 */
     //TODO: 在这里初始化控制环
     Ang_Init();
+    pitMgr_t::insert(ADCS, 1U, DEV_adc, pitMgr_t::enable);
     PID_Init();
     /** 初始化结束，开启总中断 */
     HAL_ExitCritical();
     /** 内置DSP函数测试 */
     float f = arm_sin_f32(0.6f);
     Start_init();
-//    PORT_SetPinInterruptConfig(PORTA,9,kPORT_InterruptEitherEdge);
-//    extInt_t::insert(PORTA, 9, CAM_switch);
     while (true)
     {
         if(wifi)
         {
             Wifi();
-        }
-        if(!GPIO_PinRead(GPIOA,9))
-        {
-            SDK_DelayAtLeastUs(50000, 180000000);
-            MENU_Suspend();
-            disp_ssd1306_frameBuffer_t *dispBuffer0=&dispBuffer;
-            while (kStatus_Success != DMADVP_TransferGetFullBuffer(DMADVP0, &dmadvpHandle, &fullBuffer));
-            while(true)
-            {
-                 Camscreen(dispBuffer0);
-                 if(GPIO_PinRead(GPIOA,9))
-                 {
-                     SDK_DelayAtLeastUs(50000, 180000000);
-                     MENU_Resume();
-                     break;
-                 }
-            }
         }
         //TODO: 在这里添加车模保护代码
     }
@@ -210,86 +198,16 @@ void MENU_DataSetUp(void)
     //TODO: 在这里添加子菜单和菜单项
 }
 
-void CAM_ZF9V034_DmaCallback(edma_handle_t *handle, void *userData, bool transferDone, uint32_t tcds)
+void DEV_adc(void)
 {
-    //TODO: 补完本回调函数，双缓存采图。
-        dmadvp_handle_t *dmadvpHandle = (dmadvp_handle_t*)userData;
-        status_t result = 0;
-        DMADVP_EdmaCallbackService(dmadvpHandle, transferDone);
-        result = DMADVP_TransferStart(dmadvpHandle->base, dmadvpHandle);
-        //PRINTF("new full buffer: 0x%-8.8x = 0x%-8.8x\n", handle->fullBuffer.front(), handle->xferCfg.destAddr);
-        if(kStatus_Success != result)
-        {
-            DMADVP_TransferStop(dmadvpHandle->base, dmadvpHandle);
-            PRINTF("transfer stop! insufficent buffer\n");
-        }
-        if(transferDone == true && img_upload==0)
-        {
-            DMADVP_TransferGetFullBuffer(DMADVP0, dmadvpHandle, &fullBuffer);
-            THRE();
-            pic_dif=94-image_main(midline);
-            DMADVP_TransferSubmitEmptyBuffer(DMADVP0, dmadvpHandle, fullBuffer);
-        }
-}
-
-void Camscreen(disp_ssd1306_frameBuffer_t *dispBuffer0)
-{
-    dispBuffer0->Clear();
-    for (int i = 0; i < cameraCfg.imageRow; i += 2)
+    if(nor_flag==1)
     {
-         int16_t imageRow = i >> 1;//除以2 为了加速;
-         int16_t dispRow = (imageRow / 8) + 1, dispShift = (imageRow % 8);
-         for (int j = 0; j < cameraCfg.imageCol; j += 2)
-         {
-              int16_t dispCol = j >> 1;
-              if (fullBuffer[i * cameraCfg.imageCol + j] > imageTH)
-              {
-                   dispBuffer0->SetPixelColor(dispCol, imageRow, 1);
-              }
-         }
-     }
-    if(img_upload)
-    {
-        SCHOST_ImgUpload(fullBuffer,120,188);
+        Normal();
     }
-     DISP_SSD1306_BufferUpload((uint8_t*) dispBuffer0);
-     DMADVP_TransferSubmitEmptyBuffer(DMADVP0, &dmadvpHandle, fullBuffer);
-     DMADVP_TransferStart(DMADVP0, &dmadvpHandle);
-}
-
-void CAM_switch(void)
-{
-    if(Key==0)
-    {
-        MENU_Suspend();
-        Key=1;
-    }
-    else
-    {
-        MENU_Resume();
-        Key=0;
-    }
+    adc_dif=ADC_main();
 }
 
 
-void THRE(void)
-{
-    uint8_t* map;
-    uint8_t* my_map;
-    map = fullBuffer;
-    for (int i = 0; i < 120; i++)
-    {
-        my_map = &IMG[i][0];
-        for (int j = 0; j < 188; j++)
-        {
-            if ((*map) > threshold)  //大于某个值则变白否则变黑
-                (*my_map) = 1;
-            else (*my_map) = 0;
-            map++;
-            my_map++;
-        }
-    }
-}
 /**
  * 『灯千结的碎碎念』 Tips by C.M. :
  * 1. 浮点数计算有时（例如除零时）会产生“nan”，即“非数（Not-a-Number）”。

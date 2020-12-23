@@ -37,6 +37,7 @@ extern inv::mpu6050_t imu_6050;
 #define ANGS  5U ///<直立环更新时间
 #define SPDS  20U
 #define DIRS  5U
+#define ADCS  5U
 #define G   9.4f ///<重力加速度
 #define To_ang(x)     (x * (180.0f / PI)) ///<弧度转角度
 #define To_rad(x)     (x*(PI / 180.0f))///<弧度转角度
